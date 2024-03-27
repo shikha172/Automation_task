@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+   
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.7.7/xlsx.core.min.js"></script>  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xls/0.7.4-a/xls.core.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/xlsx@0.15.1/dist/xlsx.full.min.js"></script>
+    	<!-- Html2Pdf -->
+	<!-- <script src=
+    "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.8.1/html2pdf.bundle.min.js"
+            integrity=
+    "sha512vDKWohFHe2vkVWXHp3tKvIxxXg0pJxeid5eo+UjdjME3DBFBn2F8yWOE0XmiFcFbXxrEOR1JriWEno5Ckpn15A=="
+            crossorigin="anonymous">
+        </script> -->
+    
+    <style>
+        .row{
+            margin-top: 50px;
+        }
+        input#excelfile {
+            background-color: #337ab7;
+            padding: 10px 0px 10px 14px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            border: 1px solid #337ab7;
+            border-radius: 16px;
+            /* width: 77%; */
+        }
+        input#viewfile {
+            background-color: #6a6465;
+            padding: 13px 36px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            border: 1px solid #6c6465;
+            border-radius: 16px;
+        }
+        button {
+            background-color: #5cb85c;
+            padding: 13px 29px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            border: 1px solid #5cb85c;
+            border-radius: 16px;
+        }
+        table#exceltable, th, td {
+          border: 1px solid black;
+          padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+          <div class="col-sm-4">
+              <input type="file" id="excelfile" />  
+            </div>
+            <div class="col-sm-1">
+                <span style="font-size: 37px; font-weight: bold; color: #50e770;">➤</span>
+           </div>
+            <div class="col-sm-3">
+             <input type="button" id="viewfile" value="Generate Report" onclick="ExportToTable()" />  
+             <br />  
+             <br />  
+            </div>
+            <div class="col-sm-1">
+                <span style="font-size: 37px; font-weight: bold; color: #50e770;">➤</span>
+           </div>
+            <div class="col-sm-3">
+              <button onclick="ExportToExcel('xlsx')">Export table to excel</button>
+            </div>
+            <table id="exceltable">  
+            </table> 
+        </div>
+        <!-- <td style="text-align: center; margin:2px;"><a href="javascript:window.print()" class="btn btn-primary" style=" background-color: #c50000 !important;border-color: #c50000;">HTMLtoPDF</a></td> -->
+        
+    </div>
+    
+
+    <script>
+        function ExportToTable() {  
+             var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;  
+             /*Checks whether the file is a valid excel file*/  
+             if (1==1) {  
+                 var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/  
+                 if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {  
+                     xlsxflag = true;  
+                 }  
+                 /*Checks whether the browser supports HTML5*/  
+                 if (typeof (FileReader) != "undefined") {  
+                     var reader = new FileReader();  
+                     reader.onload = function (e) {  
+                         var data = e.target.result;  
+                         /*Converts the excel data in to object*/  
+                         if (xlsxflag) {  
+                             var workbook = XLSX.read(data, { type: 'binary' });  
+                         }  
+                         else {  
+                             var workbook = XLS.read(data, { type: 'binary' });  
+                         }  
+                         /*Gets all the sheetnames of excel in to a variable*/  
+                         var sheet_name_list = workbook.SheetNames;  
+          
+                         var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/  
+                         sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/  
+                             /*Convert the cell value to Json*/  
+                             if (xlsxflag) {  
+                                 var exceljson = XLSX.utils.sheet_to_json(workbook.Sheets[y]);  
+                             }  
+                             else {  
+                                 var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);  
+                             }  
+                             if (exceljson.length > 0 && cnt == 0) {  
+                                 BindTable(exceljson, '#exceltable');  
+                                 cnt++;  
+                             }  
+                         });  
+                         $('#exceltable').show();  
+                     }  
+                     if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/  
+                         reader.readAsArrayBuffer($("#excelfile")[0].files[0]);  
+                     }  
+                     else {  
+                         reader.readAsBinaryString($("#excelfile")[0].files[0]);  
+                     }  
+                 }  
+                 else {  
+                     alert("Sorry! Your browser does not support HTML5!");  
+                 }  
+             }  
+             else {  
+                 alert("Please upload a valid Excel file!");  
+             }  
+         }  
+        function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/  
+             var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/ 
+             for (var i = 0; i < jsondata.length; i++) {  
+                  var row$ = $('<tr/>');  
+                  for (var colIndex = 0; colIndex < columns.length; colIndex++) {  
+                      if(jsondata[i] != undefined){
+                          var cellValue = jsondata[i][columns[colIndex]];  
+                          if (cellValue == null)  
+                          cellValue = "";  
+                          row$.append($('<td/>').html(cellValue));  
+                        }
+                    }  
+                  $(tableid).append(row$);  
+                  $("tr").each(function() {
+                 if (this.innerText === '') {
+                     this.closest('tr').remove();
+                    }
+                });
+            }  
+         }  
+         function BindTableHeader(jsondata, tableid) {/*Function used to get all column names from JSON and bind the html table header*/  
+             var columnSet = [];  
+             var number = 0;
+             var headerTr$ = $('<tr/>');  
+        
+             for (var i = 0; i < jsondata.length; i++) {  
+                 var rowHash = jsondata[i]; 
+                 delete rowHash['Media Identifier']; delete rowHash['Page Name']; delete rowHash['Type']; 
+                 delete rowHash['Book Name']; delete rowHash['Page Filename']; delete rowHash['Supplier Key']; 
+                 rowHash['Total Quantity'] = rowHash['Part Quantity']; 
+                 delete rowHash['Part Quantity'];
+            
+                 if( (rowHash['Tag Name'] == undefined ) ){ 
+                     delete jsondata[i];
+                
+                    }else if ((rowHash['Tag Name'] == 'Service code') || (rowHash['Tag Name'] == 'SN INFO')){
+                       //number = number+1;
+                      rowHash["Seq No."] = '';
+            
+                        if(rowHash["Tag Name"] == 'Service code'){
+                            rowHash["Service code"] = rowHash['Tag Value'];
+                            rowHash["SN INFO"] = '';
+                            delete rowHash['Tag Name'];
+                            delete rowHash['Tag Value'];
+                    
+                        }
+                        if(rowHash["Tag Name"] == 'SN INFO'){
+                            rowHash["Service code"] = '';
+                            rowHash["SN INFO"] = rowHash['Tag Value'];
+                            delete rowHash['Tag Name'];
+                            delete rowHash['Tag Value'];
+                    
+                        
+                        }
+        const sortOrder = {'Seq No.': 1, 'Chapter Name': 2, 'Part Number': 3, 'Part Name':4,'Total Quantity':5,'Service code':6,'SN INFO':7}
+        
+        //const res = rowHash.map(o => Object.assign({}, ...Object.keys(o).sort((a, b) => sortOrder[a] - sortOrder[b]).map(x => { return { [x]: o[x]}})))
+        
+        //console.log(JSON.stringify(res, null, 2))
+        //rowHash= res; 
+        
+                 for (var key in sortOrder ) {  
+                     if (rowHash.hasOwnProperty(key)) {  
+                         if ($.inArray(key, columnSet) == -1) {/*Adding each unique column names to a variable array*/  
+                             columnSet.push(key);  
+                             headerTr$.append($('<th/>').html(key));  
+                            }  
+                        }  
+                    }
+        
+                }  
+                else{
+                    delete jsondata[i];	
+                }
+            }  
+        
+        const values = jsondata;
+        
+        for (var i = 0; i < values.length; i++) { 
+           var temp = jsondata[i];
+           if(temp != undefined){
+              //number = number+1;
+              //jsondata[i]["Seq No."] = number;
+             if(jsondata[i]["Part Number"]==4812011215)
+                {
+                var c=12;
+                }
+                var arr = [];
+                var arr1 = [];
+                if((jsondata[i]["Service code"]) != ""){
+                arr.push(jsondata[i]["Service code"]);
+                }
+                if((jsondata[i]["SN INFO"]) != ""){
+                    arr1.push(jsondata[i]["SN INFO"]);
+                    }
+
+                //For display one chapter and other blank
+                for (var j = i+1; j < values.length; j++) { 
+                if(values[j] != undefined){
+                if(temp["Chapter Name"] == values[j]["Chapter Name"]){
+                jsondata[j]["Chapter Name"]= "";
+                values[j]["Chapter Name"] = "";
+                }
+        
+                //display total quantity of part number and SN Info data when service code is available
+                if(temp["Part Number"] == values[j]["Part Number"]){
+                jsondata[i]["Total Quantity"] = parseInt(jsondata[i]["Total Quantity"]) + parseInt(jsondata[j]["Total Quantity"]);
+
+                //    if((jsondata[i]["SN INFO"] != jsondata[j]["SN INFO"])){
+                //         if((jsondata[i]["SN INFO"] != "") && (jsondata[j]["SN INFO"] != "") && (jsondata[i]["SN INFO"] != jsondata[j]["SN INFO"])){
+                //             jsondata[i]["SN INFO"] += " , ";}
+                //         if((jsondata[j]["SN INFO"] != undefined)){
+                //         jsondata[i]["SN INFO"] = jsondata[i]["SN INFO"] + "" + jsondata[j]["SN INFO"];}
+                //     }
+
+                if((arr1.includes(jsondata[j]["SN INFO"]) === false)){
+	            arr1.push(jsondata[j]["SN INFO"]);}
+
+
+                if(jsondata[i]["Service code"] != jsondata[j]["Service code"]){
+                if (arr.includes(jsondata[j]["Service code"]) === false){
+                if((jsondata[j]["Service code"]) != ""){
+                arr.push(jsondata[j]["Service code"]);
+                }
+            }
+        }
+
+            delete jsondata[j];
+            delete values[j];
+            }
+            }
+            }
+            if(jsondata[i]["Service code"]=="")
+            {
+                delete jsondata[i];
+            }else{
+                number = number+1;
+              jsondata[i]["Seq No."] = number;
+            for(var k=0;k<arr.length;k++){
+            if(k == 0){
+            jsondata[i]["Service code"] = arr[k];}else if(jsondata[i]["Service code"] != undefined){
+            jsondata[i]["Service code"] += arr[k];
+            }
+            if(k!=arr.length-1){
+            jsondata[i]["Service code"] += ' , ';
+        }
+        }
+        for(var k1=0;k1<arr1.length;k1++){
+            if(k1 == 0){
+            jsondata[i]["SN INFO"] = arr1[k1];}else if(jsondata[i]["SN INFO"] != undefined){
+            jsondata[i]["SN INFO"] += arr1[k1];
+            }
+            if(k1!=arr1.length-1){
+                if(arr1[k1] != undefined){
+                jsondata[i]["SN INFO"] += ' , ';}
+            }
+            }
+        }
+        }
+        }
+        const sortOrder = {'Seq No.': 1, 'Chapter Name': 2, 'Part Number': 3, 'Part Name':4,'Total Quantity':5,'Service code':6,'SN INFO':7}
+        
+        const res = jsondata.map(o => Object.assign({}, ...Object.keys(o).sort((a, b) => sortOrder[a] - sortOrder[b]).map(x => { return { [x]: o[x]}})))
+        
+        console.log(JSON.stringify(res, null, 2))
+        rowHash= res; 
+               $(tableid).append(headerTr$); 
+             return columnSet;  
+         }  
+        </script>
+
+<script>
+   function ExportToExcel(type, fn, dl) {
+       var elt = document.getElementById('exceltable');
+       var wb = XLSX.utils.table_to_book(elt, { sheet: "sheet1" });
+       return dl ?
+         XLSX.write(wb, { bookType: type, bookSST: true, type: 'base64' }):
+         XLSX.writeFile(wb, fn || ('MySheetName.' + (type || 'xlsx')));
+    }
+
+    		// Function to GeneratePdf
+		// function GeneratePdf() {
+		// 	var element = document.getElementById('exceltable');
+		// 	html2pdf(element);
+		// }
+
+</script>
+
+</body>
+</html>
